@@ -140,7 +140,7 @@ def main():
                 markmap(st.session_state.mindmap, height=500)
 
         with tab3:
-            st.subheader("Knowledge Check")
+            st.subheader("🎓 Knowledge Check")
             
             if st.session_state.quiz_stage == 0:
                 if st.button("Generate 5 Questions", key="gen_quiz"):
@@ -150,35 +150,49 @@ def main():
                             st.session_state.quiz_data = data
                             st.session_state.quiz_stage = 1
                             st.rerun()
-                        else:
-                            st.error("Failed to generate quiz. Try again.")
 
             elif st.session_state.quiz_stage == 1:
                 with st.form("quiz_form"):
                     user_answers = {}
                     for i, q in enumerate(st.session_state.quiz_data):
-                        # The CSS now forces this text to be dark and visible
-                        st.markdown(f'<div class="quiz-card"><b>Q{i+1}:</b> {q["question"]}</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="quiz-card"><b>Question {i+1}:</b> {q["question"]}</div>', unsafe_allow_html=True)
                         user_answers[i] = st.radio("Select answer:", q["options"], key=f"ans_{i}")
                     
-                    if st.form_submit_button("Submit Answers"):
+                    if st.form_submit_button("Submit Exam"):
                         st.session_state.final_answers = user_answers
                         st.session_state.quiz_stage = 2
                         st.rerun()
 
             elif st.session_state.quiz_stage == 2:
-                score = 0
+                # Calculate Score
+                score = sum(1 for i, q in enumerate(st.session_state.quiz_data) 
+                           if st.session_state.final_answers.get(i) == q["answer"])
+                
+                # --- TOP SCORE SECTION ---
+                st.markdown(f"""
+                    <div style="background-color:#FF4B4B; padding:20px; border-radius:10px; margin-bottom:25px;">
+                        <h2 style="color:white; text-align:center; margin:0;">🏆 Final Score: {score} / {len(st.session_state.quiz_data)}</h2>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                # --- DETAILED REVIEW SECTION ---
                 for i, q in enumerate(st.session_state.quiz_data):
                     u_ans = st.session_state.final_answers.get(i)
-                    if u_ans == q["answer"]:
-                        score += 1
-                        st.success(f"Q{i+1}: Correct! ✔️")
-                    else:
-                        st.error(f"Q{i+1}: Incorrect. Correct answer: {q['answer']}")
-                        st.info(f"💡 {q.get('explanation', '')}")
-                
-                st.metric("Total Score", f"{score} / 5")
-                if st.button("Start New Quiz"):
+                    is_correct = (u_ans == q["answer"])
+                    
+                    # Layout for Question Details
+                    with st.expander(f"Q{i+1}: {'✅ Correct' if is_correct else '❌ Incorrect'}", expanded=True):
+                        st.markdown(f"**Question:** {q['question']}")
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown(f"**Your Answer:** \n `{u_ans}`")
+                        with col2:
+                            st.markdown(f"**Correct Answer:** \n `{q['answer']}`")
+                        
+                        st.info(f"**Explanation:** {q.get('explanation', 'No explanation provided.')}")
+
+                if st.button("🔄 Take New Quiz"):
                     st.session_state.quiz_stage = 0
                     st.rerun()
 
@@ -199,4 +213,5 @@ def main():
         st.info("Upload a PDF to start.")
 
 if __name__ == "__main__":
+
     main()
